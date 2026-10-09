@@ -45,8 +45,13 @@ const presenceSockets = new Map();
 let generalChat = [];
 let mentionUnread = {};
 let missionOnlineSeconds = {};
-let missionDaily = { day: new Date().toISOString().slice(0,10), users: {} };
-function ensureMissionDaily(){const day=new Date().toISOString().slice(0,10);if(!missionDaily||missionDaily.day!==day){missionDaily={day,users:{}};missionOnlineSeconds={};}if(!missionDaily.users)missionDaily.users={};return missionDaily;}
+function missionDayKey(date = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {timeZone:"America/Sao_Paulo", year:"numeric", month:"2-digit", day:"2-digit"}).formatToParts(date);
+  const p = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${p.year}-${p.month}-${p.day}`;
+}
+let missionDaily = { day: missionDayKey(), users: {} };
+function ensureMissionDaily(){const day=missionDayKey();if(!missionDaily||missionDaily.day!==day){missionDaily={day,users:{}};missionOnlineSeconds={};}if(!missionDaily.users)missionDaily.users={};return missionDaily;}
 function missionUser(uid){const all=ensureMissionDaily();if(!all.users[String(uid)])all.users[String(uid)]={chatMessages:0,profileViews:0,claimed:[]};return all.users[String(uid)];}
 const monthKey = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}`;
 let chatActivity = { month: monthKey(), counts: {} };
@@ -72,7 +77,7 @@ function loadStore(){
   try { const d=JSON.parse(fs.readFileSync(dataFile,"utf8"));
     store.users=new Map(d.users||[]); store.projects=d.projects||[]; store.likes=new Set(d.likes||[]);
     store.notifications=d.notifications||[]; store.messages=d.messages||[]; store.forum=d.forum||[];
-    store.challenges=d.challenges||[]; store.bannedIds=new Set(d.bannedIds||[]); store.rooms=new Map(d.rooms||[]); generalChat=d.generalChat||[]; mentionUnread=d.mentionUnread||{}; missionOnlineSeconds=d.missionOnlineSeconds||{}; missionDaily=d.missionDaily||{day:new Date().toISOString().slice(0,10),users:{}}; ensureMissionDaily(); chatActivity=d.chatActivity||{month:monthKey(),counts:{}}; ensureChatActivityMonth(); return true;
+    store.challenges=d.challenges||[]; store.bannedIds=new Set(d.bannedIds||[]); store.rooms=new Map(d.rooms||[]); generalChat=d.generalChat||[]; mentionUnread=d.mentionUnread||{}; missionOnlineSeconds=d.missionOnlineSeconds||{}; missionDaily=d.missionDaily||{day:missionDayKey(),users:{}}; ensureMissionDaily(); chatActivity=d.chatActivity||{month:monthKey(),counts:{}}; ensureChatActivityMonth(); return true;
   } catch(e){ if(e.code!=="ENOENT") console.error("Não foi possível carregar dados persistidos:",e.message); return false; }
 }
 function saveStore(){
@@ -208,4 +213,6 @@ io.on("connection",socket=>{
     }
     for(const roomId of socket.data.rooms||[]){const members=roomMembers.get(roomId);if(members){members.delete(socket.id);io.to(roomId).emit("room:members",{roomId,members:[...members.values()]});io.to(roomId).emit("room:peer-left",{socketId:socket.id});if(!members.size){roomMembers.delete(roomId);if(store.rooms.has(roomId)){store.rooms.delete(roomId);saveStore();io.emit("room:deleted",{roomId})}}}}});
 });
+server.listen(PORT,()=>console.log(`OpenDev rodando em http://localhost:${PORT}`));
+
 server.listen(PORT,()=>console.log(`OpenDev rodando em http://localhost:${PORT}`));
