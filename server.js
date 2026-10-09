@@ -214,5 +214,3 @@ io.on("connection",socket=>{
     for(const roomId of socket.data.rooms||[]){const members=roomMembers.get(roomId);if(members){members.delete(socket.id);io.to(roomId).emit("room:members",{roomId,members:[...members.values()]});io.to(roomId).emit("room:peer-left",{socketId:socket.id});if(!members.size){roomMembers.delete(roomId);if(store.rooms.has(roomId)){store.rooms.delete(roomId);saveStore();io.emit("room:deleted",{roomId})}}}}});
 });
 server.listen(PORT,()=>console.log(`OpenDev rodando em http://localhost:${PORT}`));
-
-server.listen(PORT,()=>console.log(`OpenDev rodando em http://localhost:${PORT}`));
